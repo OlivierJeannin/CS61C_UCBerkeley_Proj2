@@ -16,15 +16,30 @@
 # =================================================================
 argmax:
     # Prologue
-
+    blt zero, a1, loop_start	# (0 < len) aka (len >= 1)
+    li a0, 36
+    j exit
 
 loop_start:
-
+    li t0, 0			# int i = 0
+    li t1, 0			# largest_index = 0
+    lw t2, 0(a0)		# largest_val = *arr
 
 loop_continue:
+    addi t0, t0, 1		# i++
+    addi a0, a0, 4		# arr++
 
+    bge t0, a1, loop_end	# i >= len
+    lw t3, 0(a0)		# load *arr
+
+    bge t2, t3, loop_continue	# largest_val >= *arr
+
+    addi t1, t0, 0		# largest_index = i
+    addi t2, t3, 0		# largest_val = *arr
+    j loop_continue
 
 loop_end:
     # Epilogue
+    addi a0, t1, 0		# return largest_index
 
     jr ra

@@ -93,6 +93,15 @@ class TestRelu(unittest.TestCase):
         # generate the `assembly/TestRelu_test_invalid_n.s` file and run it through venus
         t.execute(code=36)
 
+    def test_relu_length_0(self):
+        t = AssemblyTest(self, "relu.s")
+        t.include("abs.s")
+        array0 = t.array([])
+        t.input_array("a0", array0)
+        t.input_scalar("a1", len(array0))
+        t.call("relu")
+        t.execute(code=36)
+
 
 class TestArgmax(unittest.TestCase):
     def test_argmax_standard(self):
@@ -133,6 +142,37 @@ class TestArgmax(unittest.TestCase):
         t.call("argmax")
         # generate the `assembly/TestArgmax_test_invalid_n.s` file and run it through venus
         t.execute(code=36)
+
+    def test_argmax_largest_last(self):
+        t = AssemblyTest(self, "argmax.s")
+        # create an array in the data section
+        array0 = t.array([1, 2, -2, 0, 234, -98347, 7196])
+        # load address of the array into register a0
+        t.input_array("a0", array0)
+        # set a1 to the length of the array
+        t.input_scalar("a1", len(array0))
+        # call the `argmax` function
+        t.call("argmax")
+        # check that the register a0 contains the correct output
+        t.check_scalar("a0", 6)
+        # generate the `assembly/TestArgmax_test_simple.s` file and run it through venus
+        t.execute()
+
+
+    def test_argmax_largest_more_than_once(self):
+        t = AssemblyTest(self, "argmax.s")
+        # create an array in the data section
+        array0 = t.array([-194, 23, 0, 23, 2, -135, 23, 0])
+        # load address of the array into register a0
+        t.input_array("a0", array0)
+        # set a1 to the length of the array
+        t.input_scalar("a1", len(array0))
+        # call the `argmax` function
+        t.call("argmax")
+        # check that the register a0 contains the correct output
+        t.check_scalar("a0", 1)
+        # generate the `assembly/TestArgmax_test_simple.s` file and run it through venus
+        t.execute()
 
 
 class TestDot(unittest.TestCase):
