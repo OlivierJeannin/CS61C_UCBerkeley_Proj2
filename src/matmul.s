@@ -78,7 +78,7 @@ inner_loop_start:
     mv a3, t5
     mv a4, t6
 
-    jal ra, dot  # call dot()
+    call dot
 
     mv t2, a0  # t2 <- return value; make room for a0
 
