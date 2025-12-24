@@ -24,31 +24,176 @@
 # Usage:
 #   main.s <M0_PATH> <M1_PATH> <INPUT_PATH> <OUTPUT_PATH>
 classify:
+
+    # Prologue
+
+    addi sp sp -72  # make enough room for data read from files
+    sw ra 0(sp)
+    sw s0 4(sp)
+    sw s1 8(sp)
+    sw s2 12(sp)
+    sw s3 16(sp)
+    sw s4 20(sp)
+    sw s5 24(sp)
+    sw s6 28(sp)
+    sw s7 32(sp)
+    sw s8 36(sp)
+    sw s9 40(sp)
+
+    li t0 5
+    bne a0 t0 argc_error
+
+    mv s0 a1      # argv
+    sw a2 44(sp)  # print_out
+
+
     # Read pretrained m0
+    lw a0 4(s0)    # argv[1]
+    addi a1 sp 48  # &h0 (height of m0)
+    addi a2 sp 52  # &w0 (width of m0)
+    call read_matrix
+
+    mv s1 a0  # m0
 
 
     # Read pretrained m1
+    lw a0 8(s0)    # argv[2]
+    addi a1 sp 56  # &h1
+    addi a2 sp 60  # &w1
+    call read_matrix
+
+    mv s2 a0  # m1
 
 
     # Read input matrix
+    lw a0 12(s0)   # argv[3]
+    addi a1 sp 64  # &h_input
+    addi a2 sp 68  # &w_input
+    call read_matrix
+
+    mv s3 a0  # input
 
 
     # Compute h = matmul(m0, input)
+    lw s4 48(sp)  # h0
+    lw s5 68(sp)  # w_input
+    mul s6 s4 s5  # nelem_h (number of elements in h) = h0 * w_input
+
+    slli a0 s6 2
+    call malloc
+    beqz a0 malloc_error
+
+    mv s7 a0  # h
+
+    mv a0 s1
+    mv a1 s4
+    lw a2 52(sp)
+    mv a3 s3
+    lw a4 64(sp)
+    mv a5 s5
+    mv a6 s7
+    call matmul
 
 
     # Compute h = relu(h)
+    mv a0 s7
+    mv a1 s6
+    call relu
 
+    # s6 now free!
 
     # Compute o = matmul(m1, h)
+    lw s6 56(sp)  # h1
+    mul s8 s6 s5  # nelem_o (number of elements in o) = h1 * w_input
+
+    slli a0 s8 2
+    call malloc
+    beqz a0 malloc_error
+
+    mv s9 a0  # o
+
+    mv a0 s2
+    mv a1 s6
+    lw a2 60(sp)
+    mv a3 s7
+    mv a4 s4
+    mv a5 s5
+    mv a6 s9
+    call matmul
+
+    # s4 now free!
 
 
     # Write output matrix o
+    lw a0 16(s0)  # argv[4]
+    mv a1 s9
+    mv a2 s6
+    mv a3 s5
+    call write_matrix
+
+    # s0, s5, s6 now free!
 
 
     # Compute and return argmax(o)
+    mv a0 s9
+    mv a1 s8
+    call argmax
+
+    # s8 now free!
+
+    mv s0 a0  # argmax_o (return value)
 
 
     # If enabled, print argmax(o) and newline
+    lw t0 44(sp)  # print_out
+    bnez t0 free_and_return
 
+    call print_int
+
+    li a0 10
+    call print_char
+
+free_and_return:
+    mv a0 s1  # m0
+    call free
+
+    mv a0 s2  # m1
+    call free
+
+    mv a0 s3  # input
+    call free
+
+    mv a0 s7  # h
+    call free
+
+    mv a0 s9  # o
+    call free
+
+    mv a0 s0  # return value
+
+
+    # Epilogue
+
+    lw ra 0(sp)
+    lw s0 4(sp)
+    lw s1 8(sp)
+    lw s2 12(sp)
+    lw s3 16(sp)
+    lw s4 20(sp)
+    lw s5 24(sp)
+    lw s6 28(sp)
+    lw s7 32(sp)
+    lw s8 36(sp)
+    lw s9 40(sp)
+    addi sp sp 72
 
     jr ra
+
+
+malloc_error:
+    li a0 26
+    j exit
+
+argc_error:
+    li a0 31
+    j exit
